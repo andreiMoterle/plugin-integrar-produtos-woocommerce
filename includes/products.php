@@ -19,7 +19,7 @@ function importar_produto_para_destino($produto, $destino, $cat_map) {
         $data['type'] = 'simple';
     }
 
-    // Cria produto principal
+    // Cria produto principal (CORRETO)
     $response = wp_remote_post(trailingslashit($destino['url']) . 'wp-json/wc/v3/products', [
         'headers' => [
             'Authorization' => 'Basic ' . base64_encode($destino['ck'] . ':' . $destino['cs']),
@@ -28,6 +28,9 @@ function importar_produto_para_destino($produto, $destino, $cat_map) {
         'body' => json_encode($data),
         'timeout' => 30,
     ]);
+    error_log("Produto: " . $produto->post_title . " - Dados enviados: " . json_encode($data));
+    error_log("Produto: " . $produto->post_title . " - Resposta: " . print_r($response, true));
+
     if (is_wp_error($response) || wp_remote_retrieve_response_code($response) >= 300) {
         return false;
     }

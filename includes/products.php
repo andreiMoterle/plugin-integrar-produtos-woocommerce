@@ -1,15 +1,22 @@
 <?php
-
 function importar_produto_para_destino($produto, $destino, $cat_map) {
-    $tipo_produto = get_post_meta($produto->ID, '_product_type', true);
+    // Detecta se o produto tem variações
+    $tem_variacoes = get_posts([
+        'post_type' => 'product_variation',
+        'post_parent' => $produto->ID,
+        'posts_per_page' => 1,
+        'post_status' => ['publish', 'private'],
+        'fields' => 'ids'
+    ]);
+    $is_variable = !empty($tem_variacoes);
 
-    // Monta dados básicos
     $data = montar_dados_produto($produto, $cat_map);
 
-    // Se for variável, adiciona type e atributos
-    if ($tipo_produto === 'variable') {
+    if ($is_variable) {
         $data['type'] = 'variable';
         $data['attributes'] = montar_atributos_produto($produto);
+    } else {
+        $data['type'] = 'simple';
     }
 
     // Cria produto principal
@@ -27,8 +34,8 @@ function importar_produto_para_destino($produto, $destino, $cat_map) {
     $body = json_decode(wp_remote_retrieve_body($response), true);
     $id_destino = $body['id'] ?? null;
 
-    // Se for variável, cria variações
-    if ($tipo_produto === 'variable' && $id_destino) {
+    // Se for variável, cria as variações
+    if ($is_variable && $id_destino) {
         importar_variacoes_para_destino($produto, $destino, $id_destino);
     }
 

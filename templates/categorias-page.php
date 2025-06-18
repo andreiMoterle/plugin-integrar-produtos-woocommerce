@@ -1,5 +1,5 @@
 <?php
-$destinos = get_option('importador_woo_destinos', []);
+$destinos = get_array_option('importador_woo_destinos');
 ?>
 <div class="wrap">
 <div id="importador-loader" class="importador-loader">
@@ -12,13 +12,17 @@ $destinos = get_option('importador_woo_destinos', []);
         <p style="color:red;">Cadastre pelo menos um destino nas configurações.</p>
     <?php else: ?>
         <form method="post">
+            <?php wp_nonce_field('importar_categorias_action', 'importar_categorias_nonce'); ?>
             <table class="form-table">
                 <tr>
                     <th><label for="destino_idx">Destino</label></th>
                     <td>
                         <select name="destino_idx" id="destino_idx" required>
-                            <?php foreach ($destinos as $i => $destino): ?>
-                                <option value="<?php echo $i; ?>"><?php echo esc_html($destino['nome'] . ' (' . $destino['url'] . ')'); ?></option>
+                            <option value="">Selecione...</option>
+                            <?php foreach ($destinos as $i => $dest): ?>
+                                <option value="<?php echo esc_attr($i); ?>">
+                                    <?php echo esc_html($dest['nome'] ?? $dest['url']); ?>
+                                </option>
                             <?php endforeach; ?>
                         </select>
                     </td>

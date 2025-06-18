@@ -49,10 +49,7 @@ function importar_categorias_para_destino($destino_idx = null) {
             'parent' => $parent_id_destino,
         ];
         $response = wp_remote_post(trailingslashit($destino_url) . 'wp-json/wc/v3/products/categories', [
-            'headers' => [
-                'Authorization' => 'Basic ' . base64_encode($destino_ck . ':' . $destino_cs),
-                'Content-Type'  => 'application/json',
-            ],
+            'headers' => importar_woo_get_auth_headers($destino_ck, $destino_cs),
             'body' => json_encode($data),
             'timeout' => 30,
         ]);
@@ -80,10 +77,7 @@ function importar_categorias_para_destino($destino_idx = null) {
 
 function mapear_categorias_destino($destino) {
     $cat_response = wp_remote_get(trailingslashit($destino['url']) . 'wp-json/wc/v3/products/categories?per_page=100', [
-        'headers' => [
-            'Authorization' => 'Basic ' . base64_encode($destino['ck'] . ':' . $destino['cs']),
-            'Content-Type'  => 'application/json',
-        ],
+        'headers' => importar_woo_get_auth_headers($destino['ck'], $destino['cs']),
         'timeout' => 20,
     ]);
     $cat_body = is_wp_error($cat_response) ? [] : json_decode(wp_remote_retrieve_body($cat_response), true);

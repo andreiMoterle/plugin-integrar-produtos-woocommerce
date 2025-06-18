@@ -19,12 +19,9 @@ function importar_produto_para_destino($produto, $destino, $cat_map) {
         $data['type'] = 'simple';
     }
 
-    // Cria produto principal (CORRETO)
+    // Cria produto principal
     $response = wp_remote_post(trailingslashit($destino['url']) . 'wp-json/wc/v3/products', [
-        'headers' => [
-            'Authorization' => 'Basic ' . base64_encode($destino['ck'] . ':' . $destino['cs']),
-            'Content-Type'  => 'application/json',
-        ],
+        'headers' => importar_woo_get_auth_headers($destino['ck'], $destino['cs']),
         'body' => json_encode($data),
         'timeout' => 30,
     ]);
@@ -182,10 +179,7 @@ function importar_variacoes_para_destino($produto, $destino, $id_destino) {
 
         // Cria a variação no destino
         wp_remote_post(trailingslashit($destino['url']) . 'wp-json/wc/v3/products/' . $id_destino . '/variations', [
-            'headers' => [
-                'Authorization' => 'Basic ' . base64_encode($destino['ck'] . ':' . $destino['cs']),
-                'Content-Type'  => 'application/json',
-            ],
+            'headers' => importar_woo_get_auth_headers($destino['ck'], $destino['cs']),
             'body' => json_encode($var_data),
             'timeout' => 30,
         ]);

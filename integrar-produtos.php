@@ -1,4 +1,5 @@
 <?php
+<?php
 /*
 Plugin Name: Importador de Produtos WooCommerce
 Description: Envia produtos deste site WooCommerce para outro via API REST.
@@ -147,10 +148,7 @@ function deletar_produto_destinos($produto_id) {
             $id_destino = $historico[$destino_url][$produto_id]['id_destino'];
             $response = wp_remote_request(trailingslashit($destino_url) . 'wp-json/wc/v3/products/' . $id_destino . '?force=true', [
                 'method' => 'DELETE',
-                'headers' => [
-                    'Authorization' => 'Basic ' . base64_encode($destino_ck . ':' . $destino_cs),
-                    'Content-Type'  => 'application/json',
-                ],
+                'headers' => importar_woo_get_auth_headers($destino_ck, $destino_cs),
                 'timeout' => 30,
             ]);
             // Remove do histórico local
@@ -177,10 +175,7 @@ function buscar_info_no_destino($destino, $id_destino_produto) {
     if (!$id_destino_produto) return ['vendas' => '-', 'status' => '-'];
     $url = trailingslashit($destino['url']) . 'wp-json/wc/v3/products/' . $id_destino_produto;
     $response = wp_remote_get($url, [
-        'headers' => [
-            'Authorization' => 'Basic ' . base64_encode($destino['ck'] . ':' . $destino['cs']),
-            'Content-Type'  => 'application/json',
-        ],
+        'headers' => importar_woo_get_auth_headers($destino['ck'], $destino['cs']),
         'timeout' => 20,
     ]);
     if (is_wp_error($response) || wp_remote_retrieve_response_code($response) >= 300) {
@@ -192,3 +187,33 @@ function buscar_info_no_destino($destino, $id_destino_produto) {
         'status' => isset($body['status']) ? $body['status'] : '-'
     ];
 }
+
+add_action('wp_ajax_buscar_vendas_no_destino', function() {
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error(['vendas' => '-']);
+    }
+    $destino_url = $_GET['destino_url'] ?? '';
+    $id_destino_produto = $_GET['id_destino_produto'] ?? '';
+    $destinos = get_array_option('importador_woo_destinos');
+    $destino = null;
+    foreach ($destinos as $d) {
+        if ($d['url'] === $destino_url) {
+            $destino = $d;
+            break;
+        }
+    }
+    if (!$destino || !$id_destino_produto) {
+        wp_send_json_success(['vendas' => '-']);
+    }
+    $url = trailingslashit($destino['url']) . 'wp-json/wc/v3/products/' . $id_destino_produto;
+    $response = wp_remote_get($url, [
+        'headers' => importar_woo_get_auth_headers($destino['ck'], $destino['cs']),
+        'timeout' => 20,
+    ]);
+    if (is_wp_error($response) || wp_remote_retrieve_response_code($response) >= 300) {
+        wp_send_json_success(['vendas' => '-']);
+    }
+    $body = json_decode(wp_remote_retrieve_body($response), true);
+    $vendas = isset($body['total_sales']) ? intval($body['total_sales']) : '-';
+    wp_send_json_success(['vendas' => $vendas]);
+});

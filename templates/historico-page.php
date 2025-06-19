@@ -26,10 +26,12 @@ $destino_selecionado = isset($_GET['destino']) ? $_GET['destino'] : (count($urls
                 <?php endforeach; ?>
             </select>
         </form>
+        <input type="text" id="filtro-produto-historico" placeholder="Pesquisar produto..." style="margin:10px 0;width:300px;max-width:100%;">
         <table class="widefat" id="historico-tabela">
             <thead>
                 <tr>
                     <th>ID Produto</th>
+                    <th>Imagem</th>
                     <th>Nome</th>
                     <th>Enviado em</th>
                     <th>ID no Destino</th>
@@ -41,9 +43,18 @@ $destino_selecionado = isset($_GET['destino']) ? $_GET['destino'] : (count($urls
                 if (!empty($historico[$destino_selecionado])) :
                     foreach ($historico[$destino_selecionado] as $produto_id => $info):
                         $produto = get_post($produto_id);
+                        $img_id = $produto ? get_post_thumbnail_id($produto->ID) : 0;
+                        $img_url = $img_id ? wp_get_attachment_image_url($img_id, 'thumbnail') : '';
                         ?>
                         <tr data-id-destino="<?php echo esc_attr($info['id_destino'] ?? ''); ?>">
                             <td><?php echo esc_html($produto_id); ?></td>
+                            <td>
+                                <?php if ($img_url): ?>
+                                    <img src="<?php echo esc_url($img_url); ?>" style="max-width:50px;max-height:50px;" />
+                                <?php else: ?>
+                                    -
+                                <?php endif; ?>
+                            </td>
                             <td><?php echo esc_html($produto ? $produto->post_title : '-'); ?></td>
                             <td><?php echo date_i18n('d/m/Y H:i', $info['enviado_em']); ?></td>
                             <td><?php echo esc_html($info['id_destino'] ?? '-'); ?></td>
@@ -60,6 +71,20 @@ $destino_selecionado = isset($_GET['destino']) ? $_GET['destino'] : (count($urls
             const select = document.getElementById('destino');
             select.addEventListener('change', function() {
                 document.getElementById('form-seleciona-destino').submit();
+            });
+
+            // Filtro de pesquisa
+            const filtro = document.getElementById('filtro-produto-historico');
+            filtro.addEventListener('keyup', function() {
+                const termo = filtro.value.toLowerCase();
+                document.querySelectorAll('#historico-tabela tbody tr').forEach(function(tr) {
+                    const nome = tr.querySelector('td:nth-child(3)').textContent.toLowerCase();
+                    if (nome.indexOf(termo) !== -1) {
+                        tr.style.display = '';
+                    } else {
+                        tr.style.display = 'none';
+                    }
+                });
             });
 
             <?php if ($destino_selecionado && !empty($historico[$destino_selecionado])): ?>

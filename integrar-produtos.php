@@ -1,9 +1,8 @@
 <?php
-<?php
 /*
 Plugin Name: Importador de Produtos WooCommerce
 Description: Envia produtos deste site WooCommerce para outro via API REST.
-Version: 2.5
+Version: 2.6
 Author: Andrei Moterle
 */
 
@@ -217,4 +216,54 @@ add_action('wp_ajax_buscar_vendas_no_destino', function() {
     $body = json_decode(wp_remote_retrieve_body($response), true);
     $vendas = isset($body['total_sales']) ? intval($body['total_sales']) : '-';
     wp_send_json_success(['vendas' => $vendas]);
+});
+
+add_action('wp_ajax_importar_produtos_em_lote', function() {
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error(['mensagem' => 'Permissão negada.']);
+    }
+    $destino_idx = intval($_POST['destino_idx'] ?? 0);
+    $offset = intval($_POST['offset'] ?? 0);
+    $batch_size = 20;
+
+    $destinos = get_option('importador_woo_destinos', []);
+    if (!isset($destinos[$destino_idx])) {
+        wp_send_json_error(['mensagem' => 'Destino inválido.']);
+    }
+    $destino = $destinos[$destino_idx];
+    $cat_map = mapear_categorias_destino($destino);
+
+    $args = [
+        'post_type' => 'product',
+        'posts_per_page' => $batch_size,
+        'post_status' => 'publish',
+        'offset' => $offset,
+        'fields' => 'ids'
+    ];
+    $produtos = get_posts($args);
+
+    $enviados = 0;
+    $erros = [];
+
+    foreach ($produtos as $produto_id) {
+        $produto = get_post($produto_id);
+        $resultado = importar_produto_para_destino($produto, $destino, $cat_map);
+        if (is_array($resultado) && !empty($resultado['success'])) {
+            registrar_envio_produto($produto->ID, $destino['url'], $resultado['id_destino']);
+            $enviados++;
+        } else {
+            $erros[] = $resultado['mensagem'] ?? 'Erro ao enviar "' . $produto->post_title . '"';
+        }
+    }
+
+    $total = wp_count_posts('product')->publish;
+    $proximo_offset = $offset + $batch_size;
+    $finalizado = $proximo_offset >= $total;
+
+    wp_send_json_success([
+        'enviados' => $enviados,
+        'erros' => $erros,
+        'finalizado' => $finalizado,
+        'progresso' => min($proximo_offset, $total) . " / $total"
+    ]);
 });

@@ -2,7 +2,7 @@
 /*
 Plugin Name: Importador de Produtos WooCommerce
 Description: Envia produtos deste site WooCommerce para outro via API REST.
-Version: 2.9
+Version: 2.91
 Author: Andrei Moterle
 */
 
@@ -224,8 +224,6 @@ add_action('wp_ajax_importar_produtos_em_lote', function() {
     }
     $destino_idx = intval($_POST['destino_idx'] ?? 0);
     $offset = intval($_POST['offset'] ?? 0);
-    
-    // Quantida de de produtos por lote
     $batch_size = 5;
 
     $destinos = get_option('importador_woo_destinos', []);
@@ -235,17 +233,22 @@ add_action('wp_ajax_importar_produtos_em_lote', function() {
     $destino = $destinos[$destino_idx];
     $cat_map = mapear_categorias_destino($destino);
 
-    $args = [
-        'post_type' => 'product',
-        'posts_per_page' => $batch_size,
-        'post_status' => 'publish',
-        'offset' => $offset,
-        'fields' => 'ids'
-    ];
-    $produtos = get_posts($args);
+    // Pegue todos os IDs de produtos apenas uma vez
+    static $all_ids = null;
+    if ($all_ids === null) {
+        $all_ids = get_posts([
+            'post_type' => 'product',
+            'posts_per_page' => -1,
+            'post_status' => 'publish',
+            'fields' => 'ids'
+        ]);
+    }
+    $total = count($all_ids);
+
+    // Pegue o lote correto
+    $produtos = array_slice($all_ids, $offset, $batch_size);
 
     $apenas_novos = !empty($_POST['apenas_novos']);
-
     if ($apenas_novos) {
         $produtos = array_filter($produtos, function($produto_id) use ($destino) {
             return !produto_ja_enviado($produto_id, $destino['url']);
@@ -266,7 +269,6 @@ add_action('wp_ajax_importar_produtos_em_lote', function() {
         }
     }
 
-    $total = wp_count_posts('product')->publish;
     $proximo_offset = $offset + $batch_size;
     $finalizado = $proximo_offset >= $total;
 
@@ -276,21 +278,6 @@ add_action('wp_ajax_importar_produtos_em_lote', function() {
         'finalizado' => $finalizado,
         'progresso' => min($proximo_offset, $total) . " / $total"
     ]);
-
-    $args = [
-        'post_type' => 'product',
-        'posts_per_page' => $batch_size,
-        'post_status' => 'publish',
-        'offset' => $offset,
-        'fields' => 'ids'
-    ];
-    $produtos = get_posts($args);
-
-    if ($apenas_novos) {
-        $produtos = array_filter($produtos, function($produto_id) use ($destino) {
-            return !produto_ja_enviado($produto_id, $destino['url']);
-        });
-    }
 });
 
 add_action('wp_ajax_importar_produto_unico_ajax', function() {

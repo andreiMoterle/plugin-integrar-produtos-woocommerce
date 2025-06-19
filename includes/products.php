@@ -1,6 +1,11 @@
 <?php
 function importar_produto_para_destino($produto, $destino, $cat_map) {
-    // Detecta se o produto tem variações
+    $destino_url = $destino['url'];
+    $produto_id = $produto->ID;
+
+    // Verifica se já existe vínculo
+    $id_destino = id_destino_produto($produto_id, $destino_url);
+
     $tem_variacoes = get_posts([
         'post_type' => 'product_variation',
         'post_parent' => $produto->ID,
@@ -19,13 +24,28 @@ function importar_produto_para_destino($produto, $destino, $cat_map) {
         $data['type'] = 'simple';
     }
 
-    $response = wp_remote_post(trailingslashit($destino['url']) . 'wp-json/wc/v3/products', [
-        'headers' => importar_woo_get_auth_headers($destino['ck'], $destino['cs']),
-        'body' => json_encode($data),
-        'timeout' => 30,
-    ]);
-    error_log("Produto: " . $produto->post_title . " - Dados enviados: " . json_encode($data));
-    error_log("Produto: " . $produto->post_title . " - Resposta: " . print_r($response, true));
+    if ($id_destino) {
+        // Já existe: atualiza (PUT)
+        $response = wp_remote_request(
+            trailingslashit($destino_url) . 'wp-json/wc/v3/products/' . $id_destino,
+            [
+                'method'  => 'PUT',
+                'headers' => importar_woo_get_auth_headers($destino['ck'], $destino['cs']),
+                'body'    => json_encode($data),
+                'timeout' => 30,
+            ]
+        );
+    } else {
+        // Não existe: cria (POST)
+        $response = wp_remote_post(
+            trailingslashit($destino_url) . 'wp-json/wc/v3/products',
+            [
+                'headers' => importar_woo_get_auth_headers($destino['ck'], $destino['cs']),
+                'body'    => json_encode($data),
+                'timeout' => 30,
+            ]
+        );
+    }
 
     if (is_wp_error($response)) {
         return [
@@ -41,16 +61,16 @@ function importar_produto_para_destino($produto, $destino, $cat_map) {
         ];
     }
     $body = json_decode(wp_remote_retrieve_body($response), true);
-    $id_destino = $body['id'] ?? null;
+    $id_destino_novo = $body['id'] ?? null;
 
-    // Se for variável, cria as variações
-    if ($is_variable && $id_destino) {
-        importar_variacoes_para_destino($produto, $destino, $id_destino);
+    // Se for variável, cria/atualiza as variações
+    if ($is_variable && $id_destino_novo) {
+        importar_variacoes_para_destino($produto, $destino, $id_destino_novo);
     }
 
     return [
         'success' => true,
-        'id_destino' => $id_destino
+        'id_destino' => $id_destino_novo
     ];
 }
 

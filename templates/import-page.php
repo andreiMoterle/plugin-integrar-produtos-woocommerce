@@ -15,18 +15,14 @@ if (isset($_POST['destino_idx'])) {
 }
 ?>
 <div class="wrap">
-<div id="importador-loader" class="importador-loader">
-    <div class="importador-loader-center">
-        <div class="loader"></div>
-    </div>
-</div>
 
-<h1>Enviar Produtos para Franqueado</h1>
-<?php if (empty($destinos)): ?>
-    <?php importar_woo_mensagem('Cadastre pelo menos um destino nas configurações.', 'error'); ?>
-<?php elseif (empty($produtos)): ?>
-    <?php importar_woo_mensagem('Nenhum produto encontrado.', 'error'); ?>
-<?php else: ?>
+    <h1>Enviar Produtos para Franqueado</h1>
+    <?php if (empty($destinos)): ?>
+        <?php importar_woo_mensagem('Cadastre pelo menos um destino nas configurações.', 'error'); ?>
+    <?php elseif (empty($produtos)): ?>
+        <?php importar_woo_mensagem('Nenhum produto encontrado.', 'error'); ?>
+    <?php else: ?>
+        
     <form method="post" id="form-importar-produto">
         <script>
             var importar_produto_unico_ajax = {
@@ -48,11 +44,11 @@ if (isset($_POST['destino_idx'])) {
 
         <button type="button" id="importar-todos" class="button button-primary">Importar Todos</button>
         <div id="importar-todos-status" style="margin:10px 0;"></div>
-        <div id="importar-todos-progressbar" style="width:100%;height:30px;"></div>
+        <div class="progressbar-container" id="importar-todos-progressbar"><div class="progressbar-bar"></div></div>
 
         <button type="button" id="importar-novos" class="button">Importar Apenas Novos</button>
         <div id="importar-novos-status" style="margin:10px 0;"></div>
-        <div id="importar-novos-progressbar" style="width:100%;height:30px;"></div>
+        <div class="progressbar-container" id="importar-novos-progressbar"><div class="progressbar-bar"></div></div>
 
         <br>
         <table class="widefat">
@@ -79,8 +75,8 @@ if (isset($_POST['destino_idx'])) {
                         </td>
                         <td><?php echo esc_html($produto->post_title); ?></td>
                         <td>
-                            <button type="submit" name="importar_produto_unico" value="<?= esc_attr($produto->ID) ?>" class="button button-primary">Importar/Sincronizar</button>
-                            <div class="importar-produto-progressbar" id="importar-produto-progressbar-<?= $produto->ID ?>" style="width:100px;height:10px;"></div>
+                            <button type="button" name="importar_produto_unico" value="<?= esc_attr($produto->ID) ?>" class="button button-primary">Importar/Sincronizar</button>
+<div class="progressbar-container importar-produto-progressbar" id="importar-produto-progressbar-<?= $produto->ID ?>"><div class="progressbar-bar"></div></div>
                         </td>
                     </tr>
                 <?php endforeach; ?>

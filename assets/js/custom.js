@@ -1,24 +1,27 @@
 document.addEventListener('DOMContentLoaded', function() {
+    
     document.querySelectorAll('form').forEach(function(form) {
         form.addEventListener('submit', function() {
             var loader = document.getElementById('importador-loader');
             if (loader) loader.style.display = 'block';
         });
     });
-});
 
-document.addEventListener('DOMContentLoaded', function() {
+
+    // Função para atualizar barra de progresso
+    function setProgress(container, percent) {
+        if (!container) return;
+        var bar = container.querySelector('.progressbar-bar');
+        if (bar) {
+            bar.style.width = percent + '%';
+            container.style.display = percent > 0 ? 'block' : 'none';
+        }
+    }
+
     // Importar Todos
     var btnImportarTodos = document.getElementById('importar-todos');
     var statusTodos = document.getElementById('importar-todos-status');
-    var barTodos = new ProgressBar.Line('#importar-todos-progressbar', {
-        strokeWidth: 4,
-        color: '#0073aa',
-        trailColor: '#eee',
-        trailWidth: 1,
-        duration: 300,
-        svgStyle: {width: '100%', height: '100%'}
-    });
+    var barTodos = document.getElementById('importar-todos-progressbar');
 
     if (btnImportarTodos) {
         btnImportarTodos.addEventListener('click', function() {
@@ -29,8 +32,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             btnImportarTodos.disabled = true;
             statusTodos.innerHTML = 'Iniciando importação...';
-            barTodos.set(0);
-            barTodos.animate(0); // reset
+            setProgress(barTodos, 0);
             importarLote(0);
 
             function importarLote(offset) {
@@ -49,7 +51,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (!res.success) {
                         statusTodos.innerHTML = '<span style="color:red;">' + (res.data.mensagem || 'Erro desconhecido') + '</span>';
                         btnImportarTodos.disabled = false;
-                        barTodos.set(0);
+                        setProgress(barTodos, 0);
                         return;
                     }
                     statusTodos.innerHTML = 'Progresso: ' + res.data.progresso + '<br>Total enviados: ' + (offset + res.data.enviados);
@@ -59,21 +61,21 @@ document.addEventListener('DOMContentLoaded', function() {
                     var partes = res.data.progresso.split('/');
                     var atual = parseInt(partes[0]);
                     var total = parseInt(partes[1]);
-                    var percent = total ? (atual / total) : 0;
-                    barTodos.animate(percent);
+                    var percent = total ? Math.round((atual / total) * 100) : 0;
+                    setProgress(barTodos, percent);
 
                     if (!res.data.finalizado) {
                         importarLote(offset + 20);
                     } else {
                         statusTodos.innerHTML += '<br><strong>Importação finalizada!</strong>';
                         btnImportarTodos.disabled = false;
-                        setTimeout(function() { barTodos.set(0); }, 2000);
+                        setTimeout(function() { setProgress(barTodos, 0); }, 2000);
                     }
                 })
                 .catch(() => {
                     statusTodos.innerHTML = '<span style="color:red;">Erro de comunicação com o servidor.</span>';
                     btnImportarTodos.disabled = false;
-                    barTodos.set(0);
+                    setProgress(barTodos, 0);
                 });
             }
         });
@@ -82,14 +84,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Importar Apenas Novos
     var btnImportarNovos = document.getElementById('importar-novos');
     var statusNovos = document.getElementById('importar-novos-status');
-    var barNovos = new ProgressBar.Line('#importar-novos-progressbar', {
-        strokeWidth: 4,
-        color: '#0073aa',
-        trailColor: '#eee',
-        trailWidth: 1,
-        duration: 300,
-        svgStyle: {width: '100%', height: '100%'}
-    });
+    var barNovos = document.getElementById('importar-novos-progressbar');
 
     if (btnImportarNovos) {
         btnImportarNovos.addEventListener('click', function() {
@@ -100,8 +95,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             btnImportarNovos.disabled = true;
             statusNovos.innerHTML = 'Iniciando importação apenas dos novos...';
-            barNovos.set(0);
-            barNovos.animate(0);
+            setProgress(barNovos, 0);
             importarLoteNovos(0);
 
             function importarLoteNovos(offset) {
@@ -121,7 +115,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (!res.success) {
                         statusNovos.innerHTML = '<span style="color:red;">' + (res.data.mensagem || 'Erro desconhecido') + '</span>';
                         btnImportarNovos.disabled = false;
-                        barNovos.set(0);
+                        setProgress(barNovos, 0);
                         return;
                     }
                     statusNovos.innerHTML = 'Progresso: ' + res.data.progresso + '<br>Enviados neste lote: ' + res.data.enviados;
@@ -131,32 +125,30 @@ document.addEventListener('DOMContentLoaded', function() {
                     var partes = res.data.progresso.split('/');
                     var atual = parseInt(partes[0]);
                     var total = parseInt(partes[1]);
-                    var percent = total ? (atual / total) : 0;
-                    barNovos.animate(percent);
+                    var percent = total ? Math.round((atual / total) * 100) : 0;
+                    setProgress(barNovos, percent);
 
                     if (!res.data.finalizado) {
                         importarLoteNovos(offset + 20);
                     } else {
                         statusNovos.innerHTML += '<br><strong>Importação finalizada!</strong>';
                         btnImportarNovos.disabled = false;
-                        setTimeout(function() { barNovos.set(0); }, 2000);
+                        setTimeout(function() { setProgress(barNovos, 0); }, 2000);
                     }
                 })
                 .catch(() => {
                     statusNovos.innerHTML = '<span style="color:red;">Erro de comunicação com o servidor.</span>';
                     btnImportarNovos.disabled = false;
-                    barNovos.set(0);
+                    setProgress(barNovos, 0);
                 });
             }
         });
     }
-});
 
-document.addEventListener('DOMContentLoaded', function() {
-    // Para cada botão de importação individual
+    // Importação individual
     document.querySelectorAll('button[name="importar_produto_unico"]').forEach(function(btn) {
         btn.addEventListener('click', function(e) {
-            e.preventDefault(); // Impede o submit tradicional
+            e.preventDefault();
 
             var produtoId = btn.value;
             var destino = document.getElementById('destino_idx');
@@ -165,42 +157,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
-            // Desabilita o botão durante o processo
             btn.disabled = true;
 
-            // Status e barra de progresso individuais
-            var statusDiv = btn.closest('tr').querySelector('.importar-produto-status');
-            if (!statusDiv) {
-                statusDiv = document.createElement('div');
-                statusDiv.className = 'importar-produto-status';
-                btn.closest('td').appendChild(statusDiv);
-            }
-            statusDiv.innerHTML = 'Enviando...';
+            var barDiv = document.getElementById('importar-produto-progressbar-' + produtoId);
+            setProgress(barDiv, 50); // Meio enquanto processa
 
-            var barId = 'importar-produto-progressbar-' + produtoId;
-            var barDiv = document.getElementById(barId);
-            if (!barDiv) {
-                barDiv = document.createElement('div');
-                barDiv.id = barId;
-                barDiv.style.width = '100px';
-                barDiv.style.height = '10px';
-                btn.closest('td').appendChild(barDiv);
-            }
-            // Limpa barra anterior
-            barDiv.innerHTML = '';
-
-            var bar = new ProgressBar.Line('#' + barId, {
-                strokeWidth: 4,
-                color: '#0073aa',
-                trailColor: '#eee',
-                trailWidth: 1,
-                duration: 300,
-                svgStyle: {width: '100%', height: '100%'}
-            });
-            bar.set(0);
-            bar.animate(0.5); // Meio enquanto processa
-
-            // Monta dados do formulário
             var data = new FormData();
             data.append('action', 'importar_produto_unico_ajax');
             data.append('produto_id', produtoId);
@@ -215,20 +176,25 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(resp => resp.json())
             .then(res => {
                 if (res.success) {
-                    statusDiv.innerHTML = '<span style="color:green;">' + res.data.mensagem + '</span>';
-                    bar.animate(1.0);
+                    setProgress(barDiv, 100);
                 } else {
-                    statusDiv.innerHTML = '<span style="color:red;">' + (res.data && res.data.mensagem ? res.data.mensagem : 'Erro ao importar produto.') + '</span>';
-                    bar.set(0);
+                    setProgress(barDiv, 0);
                 }
                 btn.disabled = false;
-                setTimeout(function() { bar.set(0); }, 2000);
+                setTimeout(function() { setProgress(barDiv, 0); }, 2000);
             })
             .catch(() => {
-                statusDiv.innerHTML = '<span style="color:red;">Erro de comunicação com o servidor.</span>';
-                bar.set(0);
+                setProgress(barDiv, 0);
                 btn.disabled = false;
             });
+        });
+    });
+
+    // Loader para formulários tradicionais
+    document.querySelectorAll('form').forEach(function(form) {
+        form.addEventListener('submit', function() {
+            var loader = document.getElementById('importador-loader');
+            if (loader) loader.style.display = 'block';
         });
     });
 });

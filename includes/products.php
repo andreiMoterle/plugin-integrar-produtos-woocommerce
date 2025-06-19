@@ -111,6 +111,8 @@ function importar_produto_para_destino($produto, $destino, $cat_map) {
 function montar_dados_produto($produto, $cat_map) {
     $preco = get_post_meta($produto->ID, '_price', true);
     
+    $preco_normal = get_post_meta($produto->ID, '_regular_price', true);
+
     $preco_promocional = get_post_meta($produto->ID, '_sale_price', true);
     
     $sale_price_from = get_post_meta($produto->ID, '_sale_price_dates_from', true);
@@ -175,7 +177,7 @@ function montar_dados_produto($produto, $cat_map) {
     $data = [
         'name'        => $produto->post_title,
         'description' => $produto->post_content,
-        'regular_price' => $preco !== '' ? strval($preco) : '',
+        'regular_price' => $preco_normal !== '' ? strval($preco_normal) : '',
         'sku'        => $sku ? $sku : '',
     ];
 

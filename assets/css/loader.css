@@ -23,3 +23,19 @@
     0% { transform: rotate(0deg);}
     100% { transform: rotate(360deg);}
 }
+
+.progressbar-container {
+    width: 100%;
+    background: #eee;
+    border-radius: 4px;
+    height: 18px;
+    margin: 6px 0;
+    overflow: hidden;
+    display: none;
+}
+.progressbar-bar {
+    height: 100%;
+    background: #0073aa;
+    width: 0%;
+    transition: width 0.3s;
+}

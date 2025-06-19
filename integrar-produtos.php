@@ -2,7 +2,7 @@
 /*
 Plugin Name: Importador de Produtos WooCommerce
 Description: Envia produtos deste site WooCommerce para outro via API REST.
-Version: 2.7
+Version: 2.72
 Author: Andrei Moterle
 */
 
@@ -13,13 +13,6 @@ require_once plugin_dir_path(__FILE__) . 'includes/helpers.php';
 add_action('admin_menu', 'importador_menu');
 
 add_action('admin_enqueue_scripts', function() {
-    wp_enqueue_script(
-        'progressbar-js',
-        'https://cdn.jsdelivr.net/npm/progressbar.js@1.1.0/dist/progressbar.min.js',
-        [],
-        '1.1.0',
-        true
-    );
     wp_enqueue_script(
         'importador-custom-js',
         plugin_dir_url(__FILE__) . 'assets/js/custom.js',
@@ -249,6 +242,14 @@ add_action('wp_ajax_importar_produtos_em_lote', function() {
     ];
     $produtos = get_posts($args);
 
+    $apenas_novos = !empty($_POST['apenas_novos']);
+
+    if ($apenas_novos) {
+        $produtos = array_filter($produtos, function($produto_id) use ($destino) {
+            return !produto_ja_enviado($produto_id, $destino['url']);
+        });
+    }
+
     $enviados = 0;
     $erros = [];
 
@@ -273,8 +274,6 @@ add_action('wp_ajax_importar_produtos_em_lote', function() {
         'finalizado' => $finalizado,
         'progresso' => min($proximo_offset, $total) . " / $total"
     ]);
-
-    $apenas_novos = !empty($_POST['apenas_novos']);
 
     $args = [
         'post_type' => 'product',

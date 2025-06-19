@@ -57,7 +57,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     setProgress(barTodos, percent);
 
                     if (!res.data.finalizado) {
-                        importarLote(offset + 20);
+                        importarLote(offset + 5);
                     } else {
                         statusTodos.innerHTML += '<br><strong>Importação finalizada!</strong>';
                         btnImportarTodos.disabled = false;
@@ -121,7 +121,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     setProgress(barNovos, percent);
 
                     if (!res.data.finalizado) {
-                        importarLoteNovos(offset + 20);
+                        importarLoteNovos(offset + 5);
                     } else {
                         statusNovos.innerHTML += '<br><strong>Importação finalizada!</strong>';
                         btnImportarNovos.disabled = false;

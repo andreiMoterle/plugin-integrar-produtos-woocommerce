@@ -76,7 +76,7 @@ if (isset($_POST['destino_idx'])) {
                         <td><?php echo esc_html($produto->post_title); ?></td>
                         <td>
                             <button type="button" name="importar_produto_unico" value="<?= esc_attr($produto->ID) ?>" class="button button-primary">Importar/Sincronizar</button>
-<div class="progressbar-container importar-produto-progressbar" id="importar-produto-progressbar-<?= $produto->ID ?>"><div class="progressbar-bar"></div></div>
+                            <div class="progressbar-container importar-produto-progressbar" id="importar-produto-progressbar-<?= $produto->ID ?>"><div class="progressbar-bar"></div></div>
                         </td>
                     </tr>
                 <?php endforeach; ?>

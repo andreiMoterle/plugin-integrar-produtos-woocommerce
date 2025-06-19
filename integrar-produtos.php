@@ -224,7 +224,9 @@ add_action('wp_ajax_importar_produtos_em_lote', function() {
     }
     $destino_idx = intval($_POST['destino_idx'] ?? 0);
     $offset = intval($_POST['offset'] ?? 0);
-    $batch_size = 20;
+    
+    // Quantida de de produtos por lote
+    $batch_size = 5;
 
     $destinos = get_option('importador_woo_destinos', []);
     if (!isset($destinos[$destino_idx])) {

@@ -1,13 +1,4 @@
 document.addEventListener('DOMContentLoaded', function() {
-    
-    document.querySelectorAll('form').forEach(function(form) {
-        form.addEventListener('submit', function() {
-            var loader = document.getElementById('importador-loader');
-            if (loader) loader.style.display = 'block';
-        });
-    });
-});
-document.addEventListener('DOMContentLoaded', function() {
 
     // Função para atualizar barra de progresso
     function setProgress(container, percent) {
@@ -190,4 +181,14 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     });
+
+    // Loader para formulários tradicionais (opcional, pode remover se não usar mais submit tradicional)
+    /*
+    document.querySelectorAll('form').forEach(function(form) {
+        form.addEventListener('submit', function() {
+            var loader = document.getElementById('importador-loader');
+            if (loader) loader.style.display = 'block';
+        });
+    });
+    */
 });

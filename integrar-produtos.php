@@ -2,7 +2,7 @@
 /*
 Plugin Name: Importador de Produtos WooCommerce
 Description: Envia produtos deste site WooCommerce para outro via API REST.
-Version: 2.82
+Version: 2.9
 Author: Andrei Moterle
 */
 
@@ -16,7 +16,7 @@ add_action('admin_enqueue_scripts', function() {
     wp_enqueue_script(
         'importador-custom-js',
         plugin_dir_url(__FILE__) . 'assets/js/custom.js',
-        ['progressbar-js'],
+        [],
         '1.0',
         true
     );

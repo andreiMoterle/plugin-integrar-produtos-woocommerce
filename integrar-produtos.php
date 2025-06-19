@@ -2,7 +2,7 @@
 /*
 Plugin Name: Importador de Produtos WooCommerce
 Description: Envia produtos deste site WooCommerce para outro via API REST.
-Version: 2.72
+Version: 2.82
 Author: Andrei Moterle
 */
 

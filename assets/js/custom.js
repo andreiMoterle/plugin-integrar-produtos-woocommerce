@@ -6,7 +6,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if (loader) loader.style.display = 'block';
         });
     });
-
+});
+document.addEventListener('DOMContentLoaded', function() {
 
     // Função para atualizar barra de progresso
     function setProgress(container, percent) {
@@ -187,14 +188,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 setProgress(barDiv, 0);
                 btn.disabled = false;
             });
-        });
-    });
-
-    // Loader para formulários tradicionais
-    document.querySelectorAll('form').forEach(function(form) {
-        form.addEventListener('submit', function() {
-            var loader = document.getElementById('importador-loader');
-            if (loader) loader.style.display = 'block';
         });
     });
 });

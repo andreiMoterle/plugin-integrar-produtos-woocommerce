@@ -6,6 +6,13 @@ $args = [
     'post_status' => 'publish',
 ];
 $produtos = get_posts($args);
+
+$destino_selecionado = '';
+if (isset($_POST['destino_idx'])) {
+    $destino_selecionado = $_POST['destino_idx'];
+} elseif (isset($_GET['destino_idx'])) {
+    $destino_selecionado = $_GET['destino_idx'];
+}
 ?>
 <div class="wrap">
 <div id="importador-loader" class="importador-loader">
@@ -21,12 +28,18 @@ $produtos = get_posts($args);
     <?php importar_woo_mensagem('Nenhum produto encontrado.', 'error'); ?>
 <?php else: ?>
     <form method="post" id="form-importar-produto">
+        <script>
+            var importar_produto_unico_ajax = {
+                nonce: '<?php echo wp_create_nonce('importar_produto_unico_ajax'); ?>'
+            };
+        </script>
         <?php wp_nonce_field('importar_produto_unico_action', 'importar_produto_unico_nonce'); ?>
+        
         <label for="destino_idx"><strong>Destino:</strong></label>
         <select name="destino_idx" id="destino_idx" required>
             <option value="">Selecione...</option>
             <?php foreach ($destinos as $i => $dest): ?>
-                <option value="<?php echo esc_attr($i); ?>">
+                <option value="<?php echo esc_attr($i); ?>" <?php selected($destino_selecionado, $i); ?>>
                     <?php echo esc_html($dest['nome'] ?? $dest['url']); ?>
                 </option>
             <?php endforeach; ?>
@@ -34,7 +47,13 @@ $produtos = get_posts($args);
         <br><br>
 
         <button type="button" id="importar-todos" class="button button-primary">Importar Todos</button>
-        <div id="importar-todos-status" style="margin-top:10px;"></div>
+        <div id="importar-todos-status" style="margin:10px 0;"></div>
+        <div id="importar-todos-progressbar" style="width:100%;height:30px;"></div>
+
+        <button type="button" id="importar-novos" class="button">Importar Apenas Novos</button>
+        <div id="importar-novos-status" style="margin:10px 0;"></div>
+        <div id="importar-novos-progressbar" style="width:100%;height:30px;"></div>
+
         <br>
         <table class="widefat">
             <thead>
@@ -60,7 +79,8 @@ $produtos = get_posts($args);
                         </td>
                         <td><?php echo esc_html($produto->post_title); ?></td>
                         <td>
-                            <button type="submit" name="importar_produto_unico" value="<?php echo esc_attr($produto->ID); ?>" class="button button-primary">Importar/Sincronizar</button>
+                            <button type="submit" name="importar_produto_unico" value="<?= esc_attr($produto->ID) ?>" class="button button-primary">Importar/Sincronizar</button>
+                            <div class="importar-produto-progressbar" id="importar-produto-progressbar-<?= $produto->ID ?>" style="width:100px;height:10px;"></div>
                         </td>
                     </tr>
                 <?php endforeach; ?>

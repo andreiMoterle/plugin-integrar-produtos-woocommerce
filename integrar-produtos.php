@@ -2,7 +2,7 @@
 /*
 Plugin Name: Importador de Produtos WooCommerce
 Description: Envia produtos deste site WooCommerce para outro via API REST.
-Version: 2.6
+Version: 2.7
 Author: Andrei Moterle
 */
 
@@ -14,9 +14,16 @@ add_action('admin_menu', 'importador_menu');
 
 add_action('admin_enqueue_scripts', function() {
     wp_enqueue_script(
+        'progressbar-js',
+        'https://cdn.jsdelivr.net/npm/progressbar.js@1.1.0/dist/progressbar.min.js',
+        [],
+        '1.1.0',
+        true
+    );
+    wp_enqueue_script(
         'importador-custom-js',
         plugin_dir_url(__FILE__) . 'assets/js/custom.js',
-        [],
+        ['progressbar-js'],
         '1.0',
         true
     );
@@ -266,4 +273,45 @@ add_action('wp_ajax_importar_produtos_em_lote', function() {
         'finalizado' => $finalizado,
         'progresso' => min($proximo_offset, $total) . " / $total"
     ]);
+
+    $apenas_novos = !empty($_POST['apenas_novos']);
+
+    $args = [
+        'post_type' => 'product',
+        'posts_per_page' => $batch_size,
+        'post_status' => 'publish',
+        'offset' => $offset,
+        'fields' => 'ids'
+    ];
+    $produtos = get_posts($args);
+
+    if ($apenas_novos) {
+        $produtos = array_filter($produtos, function($produto_id) use ($destino) {
+            return !produto_ja_enviado($produto_id, $destino['url']);
+        });
+    }
+});
+
+add_action('wp_ajax_importar_produto_unico_ajax', function() {
+    check_ajax_referer('importar_produto_unico_ajax');
+
+    $produto_id = intval($_POST['produto_id'] ?? 0);
+    $destino_idx = $_POST['destino_idx'] ?? '';
+    $destinos = get_option('importador_woo_destinos', []);
+    if (!isset($destinos[$destino_idx])) {
+        wp_send_json_error(['mensagem' => 'Destino inválido.']);
+    }
+    $produto = get_post($produto_id);
+    if (!$produto || $produto->post_type !== 'product') {
+        wp_send_json_error(['mensagem' => 'Produto inválido.']);
+    }
+    $destino = $destinos[$destino_idx];
+    $cat_map = mapear_categorias_destino($destino);
+    $resultado = importar_produto_para_destino($produto, $destino, $cat_map);
+    if (is_array($resultado) && !empty($resultado['success'])) {
+        registrar_envio_produto($produto->ID, $destino['url'], $resultado['id_destino']);
+        wp_send_json_success(['mensagem' => 'Produto "' . $produto->post_title . '" importado/sincronizado com sucesso!']);
+    } else {
+        wp_send_json_error(['mensagem' => $resultado['mensagem'] ?? 'Erro ao importar o produto.']);
+    }
 });

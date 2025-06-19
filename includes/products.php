@@ -3,7 +3,6 @@ function importar_produto_para_destino($produto, $destino, $cat_map) {
     $destino_url = $destino['url'];
     $produto_id = $produto->ID;
 
-    // Verifica se já existe vínculo
     $id_destino = id_destino_produto($produto_id, $destino_url);
 
     $tem_variacoes = get_posts([
@@ -24,10 +23,13 @@ function importar_produto_para_destino($produto, $destino, $cat_map) {
         $data['type'] = 'simple';
     }
 
+    $log_prefix = '[Importador Woo] Produto "' . $produto->post_title . '" (ID local: ' . $produto_id . ') - ';
+
     if ($id_destino) {
         // Já existe: atualiza (PUT)
+        $url = trailingslashit($destino_url) . 'wp-json/wc/v3/products/' . $id_destino;
         $response = wp_remote_request(
-            trailingslashit($destino_url) . 'wp-json/wc/v3/products/' . $id_destino,
+            $url,
             [
                 'method'  => 'PUT',
                 'headers' => importar_woo_get_auth_headers($destino['ck'], $destino['cs']),
@@ -35,19 +37,47 @@ function importar_produto_para_destino($produto, $destino, $cat_map) {
                 'timeout' => 30,
             ]
         );
+        error_log($log_prefix . 'Atualizando produto no destino (PUT). Dados: ' . json_encode($data));
+        error_log($log_prefix . 'Resposta PUT: ' . print_r($response, true));
+
+        // Se der erro de ID inválido, tenta criar de novo
+        if (!is_wp_error($response) && wp_remote_retrieve_response_code($response) == 400) {
+            $body = json_decode(wp_remote_retrieve_body($response), true);
+            if (isset($body['code']) && $body['code'] === 'woocommerce_rest_product_invalid_id') {
+                // Remove vínculo antigo
+                $historico = get_option('importador_woo_historico_envios', []);
+                unset($historico[$destino_url][$produto_id]);
+                update_option('importador_woo_historico_envios', $historico);
+                error_log($log_prefix . 'ID inválido no destino. Removendo vínculo e tentando criar novamente.');
+
+                $url = trailingslashit($destino_url) . 'wp-json/wc/v3/products';
+                $response = wp_remote_post(
+                    $url,
+                    [
+                        'headers' => importar_woo_get_auth_headers($destino['ck'], $destino['cs']),
+                        'body'    => json_encode($data),
+                        'timeout' => 30,
+                    ]
+                );
+                error_log($log_prefix . 'Resposta POST após erro de ID: ' . print_r($response, true));
+            }
+        }
     } else {
-        // Não existe: cria (POST)
+        $url = trailingslashit($destino_url) . 'wp-json/wc/v3/products';
         $response = wp_remote_post(
-            trailingslashit($destino_url) . 'wp-json/wc/v3/products',
+            $url,
             [
                 'headers' => importar_woo_get_auth_headers($destino['ck'], $destino['cs']),
                 'body'    => json_encode($data),
                 'timeout' => 30,
             ]
         );
+        error_log($log_prefix . 'Criando produto no destino (POST). Dados: ' . json_encode($data));
+        error_log($log_prefix . 'Resposta POST: ' . print_r($response, true));
     }
 
     if (is_wp_error($response)) {
+        error_log($log_prefix . 'Erro WP: ' . $response->get_error_message());
         return [
             'success' => false,
             'mensagem' => 'Erro ao enviar "' . $produto->post_title . '": ' . $response->get_error_message()
@@ -55,6 +85,7 @@ function importar_produto_para_destino($produto, $destino, $cat_map) {
     }
     if (wp_remote_retrieve_response_code($response) >= 300) {
         $body = wp_remote_retrieve_body($response);
+        error_log($log_prefix . 'Erro HTTP: ' . $body);
         return [
             'success' => false,
             'mensagem' => 'Erro ao enviar "' . $produto->post_title . '": ' . $body
@@ -63,7 +94,10 @@ function importar_produto_para_destino($produto, $destino, $cat_map) {
     $body = json_decode(wp_remote_retrieve_body($response), true);
     $id_destino_novo = $body['id'] ?? null;
 
-    // Se for variável, cria/atualiza as variações
+    if ($id_destino_novo && (!$id_destino || $id_destino != $id_destino_novo)) {
+        registrar_envio_produto($produto_id, $destino_url, $id_destino_novo);
+    }
+
     if ($is_variable && $id_destino_novo) {
         importar_variacoes_para_destino($produto, $destino, $id_destino_novo);
     }
@@ -76,18 +110,28 @@ function importar_produto_para_destino($produto, $destino, $cat_map) {
 
 function montar_dados_produto($produto, $cat_map) {
     $preco = get_post_meta($produto->ID, '_price', true);
+    
     $preco_promocional = get_post_meta($produto->ID, '_sale_price', true);
+    
+    $sale_price_from = get_post_meta($produto->ID, '_sale_price_dates_from', true);
+    
+    $sale_price_to = get_post_meta($produto->ID, '_sale_price_dates_to', true);
+    
     $sku = get_post_meta($produto->ID, '_sku', true);
+    
     $peso = get_post_meta($produto->ID, '_weight', true);
+    
     $comprimento = get_post_meta($produto->ID, '_length', true);
+    
     $largura = get_post_meta($produto->ID, '_width', true);
+    
     $altura = get_post_meta($produto->ID, '_height', true);
 
-    // Imagem destacada
+
     $imagem_id = get_post_thumbnail_id($produto->ID);
     $imagem_url = $imagem_id ? wp_get_attachment_url($imagem_id) : '';
 
-    // Galeria de imagens (sem duplicar a destacada)
+
     $images = [];
     if ($imagem_url) {
         $images[] = ['src' => $imagem_url];
@@ -113,7 +157,7 @@ function montar_dados_produto($produto, $cat_map) {
             $cat && !is_wp_error($cat)
             && isset($cat_map[$cat->slug])
         ) {
-            // Marca se já tem "uncategorized" ou "todos os produtos"
+
             if (
                 strtolower($cat->slug) === 'uncategorized' ||
                 strtolower($cat->name) === 'todos os produtos'
@@ -123,7 +167,7 @@ function montar_dados_produto($produto, $cat_map) {
             $categorias[] = ['id' => $cat_map[$cat->slug]];
         }
     }
-    // Sempre adiciona "uncategorized" se existir no destino e ainda não está no array
+
     if (isset($cat_map['uncategorized']) && !$tem_uncategorized) {
         $categorias[] = ['id' => $cat_map['uncategorized']];
     }
@@ -131,11 +175,17 @@ function montar_dados_produto($produto, $cat_map) {
     $data = [
         'name'        => $produto->post_title,
         'description' => $produto->post_content,
-        'regular_price' => $preco ? strval($preco) : '',
+        'regular_price' => $preco !== '' ? strval($preco) : '',
         'sku'        => $sku ? $sku : '',
     ];
 
-    if ($preco_promocional) $data['sale_price'] = strval($preco_promocional);
+    // Sempre envia o campo sale_price (mesmo vazio)
+    $data['sale_price'] = ($preco_promocional !== '') ? strval($preco_promocional) : '';
+
+    // Envia datas de promoção se existirem
+    if ($sale_price_from) $data['date_on_sale_from'] = date('Y-m-d', intval($sale_price_from));
+    if ($sale_price_to) $data['date_on_sale_to'] = date('Y-m-d', intval($sale_price_to));
+
     if ($peso) $data['weight'] = strval($peso);
     if ($comprimento || $largura || $altura) {
         $data['dimensions'] = [
@@ -146,6 +196,9 @@ function montar_dados_produto($produto, $cat_map) {
     }
     if (!empty($images)) $data['images'] = $images;
     if (!empty($categorias)) $data['categories'] = $categorias;
+
+    // Log para depuração do preço promocional
+    error_log('[Importador Woo] Produto "' . $produto->post_title . '" (ID: ' . $produto->ID . ') - regular_price: ' . $data['regular_price'] . ' | sale_price: ' . $data['sale_price'] . ' | sale_from: ' . $sale_price_from . ' | sale_to: ' . $sale_price_to);
 
     return $data;
 }
@@ -202,14 +255,14 @@ function importar_variacoes_para_destino($produto, $destino, $id_destino) {
                 }
             }
         }
-        // Imagem da variação (opcional)
+
         $img_id = get_post_thumbnail_id($variacao->ID);
         $img_url = $img_id ? wp_get_attachment_url($img_id) : '';
         if ($img_url) {
             $var_data['image'] = ['src' => $img_url];
         }
 
-        // Cria a variação no destino
+
         wp_remote_post(trailingslashit($destino['url']) . 'wp-json/wc/v3/products/' . $id_destino . '/variations', [
             'headers' => importar_woo_get_auth_headers($destino['ck'], $destino['cs']),
             'body' => json_encode($var_data),

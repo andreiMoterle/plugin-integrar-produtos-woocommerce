@@ -13,7 +13,7 @@ $destino_selecionado = isset($_GET['destino']) ? $_GET['destino'] : (count($urls
 <div id="importador-loader" class="importador-loader"></div>
     <h1>Histórico de Envios</h1>
     <?php if (empty($historico)): ?>
-        <p>Nenhum envio registrado.</p>
+        <?php importar_woo_mensagem('Nenhum envio registrado.', 'error'); ?>
     <?php else: ?>
         <form method="get" id="form-seleciona-destino">
             <input type="hidden" name="page" value="importador-woo-historico">

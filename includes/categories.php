@@ -3,13 +3,13 @@ function importar_categorias_para_destino($destino_idx = null) {
     $destinos = get_array_option('importador_woo_destinos');
     if ($destino_idx === null) {
         if (!isset($_POST['destino_idx']) || !isset($destinos[$_POST['destino_idx']])) {
-            echo '<p style="color:red;">Selecione um destino válido.</p>';
+            importar_woo_mensagem('Selecione um destino válido.', 'error');
             return;
         }
         $destino = $destinos[$_POST['destino_idx']];
     } else {
         if (!isset($destinos[$destino_idx])) {
-            echo '<p style="color:red;">Destino inválido.</p>';
+            importar_woo_mensagem('Destino inválido.', 'error');
             return;
         }
         $destino = $destinos[$destino_idx];
@@ -26,7 +26,7 @@ function importar_categorias_para_destino($destino_idx = null) {
     ]);
 
     if (empty($categorias) || is_wp_error($categorias)) {
-        echo '<p>Nenhuma categoria encontrada.</p>';
+        importar_woo_mensagem('Nenhuma categoria encontrada.', 'error');
         return;
     }
 
@@ -65,9 +65,12 @@ function importar_categorias_para_destino($destino_idx = null) {
         }
     }
 
-    echo '<p>' . $enviadas . ' categoria(s) enviadas com sucesso.</p>';
+    if ($enviadas > 0) {
+        importar_woo_mensagem($enviadas . ' categoria(s) enviadas com sucesso.', 'success');
+    }
     if ($erros) {
-        echo '<p style="color:red;">Erros:</p><ul>';
+        importar_woo_mensagem('Ocorreram erros ao enviar algumas categorias:', 'error');
+        echo '<ul class="importador-erros">';
         foreach ($erros as $erro) {
             echo '<li>' . esc_html($erro) . '</li>';
         }

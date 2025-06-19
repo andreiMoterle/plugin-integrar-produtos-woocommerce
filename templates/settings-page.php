@@ -13,7 +13,7 @@ if (isset($_POST['adicionar_destino'])) {
     ];
     $destinos[] = $novo;
     update_option('importador_woo_destinos', $destinos);
-    echo '<div class="updated"><p>Destino adicionado!</p></div>';
+    importar_woo_mensagem('Destino adicionado!', 'success');
 }
 
 // Remove destino
@@ -24,7 +24,7 @@ if (isset($_POST['remover_destino'])) {
         unset($destinos[$idx]);
         $destinos = array_values($destinos);
         update_option('importador_woo_destinos', $destinos);
-        echo '<div class="updated"><p>Destino removido!</p></div>';
+        importar_woo_mensagem('Destino removido!', 'success');
     }
 }
 ?>

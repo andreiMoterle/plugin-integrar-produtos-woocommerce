@@ -19,7 +19,6 @@ function importar_produto_para_destino($produto, $destino, $cat_map) {
         $data['type'] = 'simple';
     }
 
-    // Cria produto principal
     $response = wp_remote_post(trailingslashit($destino['url']) . 'wp-json/wc/v3/products', [
         'headers' => importar_woo_get_auth_headers($destino['ck'], $destino['cs']),
         'body' => json_encode($data),
@@ -28,8 +27,18 @@ function importar_produto_para_destino($produto, $destino, $cat_map) {
     error_log("Produto: " . $produto->post_title . " - Dados enviados: " . json_encode($data));
     error_log("Produto: " . $produto->post_title . " - Resposta: " . print_r($response, true));
 
-    if (is_wp_error($response) || wp_remote_retrieve_response_code($response) >= 300) {
-        return false;
+    if (is_wp_error($response)) {
+        return [
+            'success' => false,
+            'mensagem' => 'Erro ao enviar "' . $produto->post_title . '": ' . $response->get_error_message()
+        ];
+    }
+    if (wp_remote_retrieve_response_code($response) >= 300) {
+        $body = wp_remote_retrieve_body($response);
+        return [
+            'success' => false,
+            'mensagem' => 'Erro ao enviar "' . $produto->post_title . '": ' . $body
+        ];
     }
     $body = json_decode(wp_remote_retrieve_body($response), true);
     $id_destino = $body['id'] ?? null;
@@ -39,7 +48,10 @@ function importar_produto_para_destino($produto, $destino, $cat_map) {
         importar_variacoes_para_destino($produto, $destino, $id_destino);
     }
 
-    return $id_destino;
+    return [
+        'success' => true,
+        'id_destino' => $id_destino
+    ];
 }
 
 function montar_dados_produto($produto, $cat_map) {

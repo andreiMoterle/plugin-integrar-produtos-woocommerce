@@ -9,7 +9,7 @@ $destinos = get_array_option('importador_woo_destinos');
 </div>
     <h1>Importar Categorias para Franqueado</h1>
     <?php if (empty($destinos)): ?>
-        <p style="color:red;">Cadastre pelo menos um destino nas configurações.</p>
+        <?php importar_woo_mensagem('Cadastre pelo menos um destino nas configurações.', 'error'); ?>
     <?php else: ?>
         <form method="post">
             <?php wp_nonce_field('importar_categorias_action', 'importar_categorias_nonce'); ?>

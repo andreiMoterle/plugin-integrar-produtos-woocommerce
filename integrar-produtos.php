@@ -82,7 +82,7 @@ function id_destino_produto($produto_id, $destino_url) {
 function enviar_produtos_para_destino() {
     $destinos = get_option('importador_woo_destinos', []);
     if (!isset($_POST['destino_idx']) || !isset($destinos[$_POST['destino_idx']])) {
-        echo '<p style="color:red;">Selecione um destino válido.</p>';
+        importar_woo_mensagem('Selecione um destino válido.', 'error');
         return;
     }
     $destino = $destinos[$_POST['destino_idx']];
@@ -91,7 +91,7 @@ function enviar_produtos_para_destino() {
     $destino_cs = $destino['cs'];
 
     if (!$destino_url || !$destino_ck || !$destino_cs) {
-        echo '<p style="color:red;">Configure o destino antes de enviar.</p>';
+        importar_woo_mensagem('Configure o destino antes de enviar.', 'error');
         return;
     }
 
@@ -113,18 +113,19 @@ function enviar_produtos_para_destino() {
     $erros = [];
 
     foreach ($produtos as $produto) {
-        $id_destino = importar_produto_para_destino($produto, $destino, $cat_map);
-        if ($id_destino) {
-            registrar_envio_produto($produto->ID, $destino_url, $id_destino);
+        $resultado = importar_produto_para_destino($produto, $destino, $cat_map);
+        if (is_array($resultado) && !empty($resultado['success'])) {
+            registrar_envio_produto($produto->ID, $destino_url, $resultado['id_destino']);
             $enviados++;
         } else {
-            $erros[] = 'Erro ao enviar "' . $produto->post_title . '"';
+            $erros[] = $resultado['mensagem'] ?? 'Erro ao enviar "' . $produto->post_title . '"';
         }
     }
 
-    echo '<p>' . $enviados . ' produto(s) enviados.</p>';
+    importar_woo_mensagem($enviados . ' produto(s) enviados.', 'success');
     if ($erros) {
-        echo '<p style="color:red;">Erros:</p><ul>';
+        importar_woo_mensagem('Ocorreram erros ao enviar alguns produtos:', 'error');
+        echo '<ul class="importador-erros">';
         foreach ($erros as $erro) {
             echo '<li>' . esc_html($erro) . '</li>';
         }

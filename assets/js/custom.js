@@ -1,5 +1,15 @@
 document.addEventListener('DOMContentLoaded', function() {
 
+    // Função para mostrar/esconder o loader
+    function showLoader() {
+        var loader = document.getElementById('importador-loader');
+        if (loader) loader.style.display = 'block';
+    }
+    function hideLoader() {
+        var loader = document.getElementById('importador-loader');
+        if (loader) loader.style.display = 'none';
+    }
+
     // Função para atualizar barra de progresso
     function setProgress(container, percent) {
         if (!container) return;
@@ -20,8 +30,10 @@ document.addEventListener('DOMContentLoaded', function() {
             var destino = document.getElementById('destino_idx');
             if (!destino || !destino.value) {
                 alert('Selecione um destino.');
+                hideLoader();
                 return;
             }
+            showLoader();
             btnImportarTodos.disabled = true;
             statusTodos.innerHTML = 'Iniciando importação...';
             setProgress(barTodos, 0);
@@ -44,6 +56,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         statusTodos.innerHTML = '<span style="color:red;">' + (res.data.mensagem || 'Erro desconhecido') + '</span>';
                         btnImportarTodos.disabled = false;
                         setProgress(barTodos, 0);
+                        hideLoader();
                         return;
                     }
                     statusTodos.innerHTML = 'Progresso: ' + res.data.progresso + '<br>Total enviados: ' + (offset + res.data.enviados);
@@ -61,13 +74,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     } else {
                         statusTodos.innerHTML += '<br><strong>Importação finalizada!</strong>';
                         btnImportarTodos.disabled = false;
-                        setTimeout(function() { setProgress(barTodos, 0); }, 2000);
+                        setTimeout(function() { setProgress(barTodos, 0); hideLoader(); }, 2000);
                     }
                 })
                 .catch(() => {
                     statusTodos.innerHTML = '<span style="color:red;">Erro de comunicação com o servidor.</span>';
                     btnImportarTodos.disabled = false;
                     setProgress(barTodos, 0);
+                    hideLoader();
                 });
             }
         });
@@ -83,8 +97,10 @@ document.addEventListener('DOMContentLoaded', function() {
             var destino = document.getElementById('destino_idx');
             if (!destino || !destino.value) {
                 alert('Selecione um destino.');
+                hideLoader();
                 return;
             }
+            showLoader();
             btnImportarNovos.disabled = true;
             statusNovos.innerHTML = 'Iniciando importação apenas dos novos...';
             setProgress(barNovos, 0);
@@ -108,6 +124,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         statusNovos.innerHTML = '<span style="color:red;">' + (res.data.mensagem || 'Erro desconhecido') + '</span>';
                         btnImportarNovos.disabled = false;
                         setProgress(barNovos, 0);
+                        hideLoader();
                         return;
                     }
                     statusNovos.innerHTML = 'Progresso: ' + res.data.progresso + '<br>Enviados neste lote: ' + res.data.enviados;
@@ -125,13 +142,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     } else {
                         statusNovos.innerHTML += '<br><strong>Importação finalizada!</strong>';
                         btnImportarNovos.disabled = false;
-                        setTimeout(function() { setProgress(barNovos, 0); }, 2000);
+                        setTimeout(function() { setProgress(barNovos, 0); hideLoader(); }, 2000);
                     }
                 })
                 .catch(() => {
                     statusNovos.innerHTML = '<span style="color:red;">Erro de comunicação com o servidor.</span>';
                     btnImportarNovos.disabled = false;
                     setProgress(barNovos, 0);
+                    hideLoader();
                 });
             }
         });
@@ -146,9 +164,11 @@ document.addEventListener('DOMContentLoaded', function() {
             var destino = document.getElementById('destino_idx');
             if (!destino || !destino.value) {
                 alert('Selecione um destino.');
+                hideLoader();
                 return;
             }
 
+            showLoader();
             btn.disabled = true;
 
             var barDiv = document.getElementById('importar-produto-progressbar-' + produtoId);
@@ -173,39 +193,20 @@ document.addEventListener('DOMContentLoaded', function() {
                     setProgress(barDiv, 0);
                 }
                 btn.disabled = false;
-                setTimeout(function() { setProgress(barDiv, 0); }, 2000);
+                setTimeout(function() { setProgress(barDiv, 0); hideLoader(); }, 2000);
             })
             .catch(() => {
                 setProgress(barDiv, 0);
                 btn.disabled = false;
+                hideLoader();
             });
         });
     });
 
+    // Remove duplicidade de listeners e loader antigo
     document.querySelectorAll('form').forEach(function(form) {
         form.addEventListener('submit', function() {
-            var loader = document.getElementById('importador-loader');
-            if (loader) loader.style.display = 'block';
-        });
-    });
-});
-
-document.addEventListener('DOMContentLoaded', function() {
-    // Mostra o loader ao clicar nos botões de importação
-    ['importar-todos', 'importar-novos'].forEach(function(id) {
-        var btn = document.getElementById(id);
-        if (btn) {
-            btn.addEventListener('click', function() {
-                var loader = document.getElementById('importador-loader');
-                if (loader) loader.style.display = 'block';
-            });
-        }
-    });
-    // Mostra o loader ao importar produto único
-    document.querySelectorAll('button[name="importar_produto_unico"]').forEach(function(btn) {
-        btn.addEventListener('click', function() {
-            var loader = document.getElementById('importador-loader');
-            if (loader) loader.style.display = 'block';
+            showLoader();
         });
     });
 });

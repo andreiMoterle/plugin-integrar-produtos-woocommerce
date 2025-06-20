@@ -112,6 +112,10 @@ function enviar_produtos_para_destino() {
     $erros = [];
 
     foreach ($produtos as $produto) {
+        if (produto_ja_enviado($produto->ID, $destino_url)) {
+            // Pule produtos já enviados, só sincronize se for pelo botão individual
+            continue;
+        }
         $resultado = importar_produto_para_destino($produto, $destino, $cat_map);
         if (is_array($resultado) && !empty($resultado['success'])) {
             registrar_envio_produto($produto->ID, $destino_url, $resultado['id_destino']);
@@ -248,12 +252,10 @@ add_action('wp_ajax_importar_produtos_em_lote', function() {
     // Pegue o lote correto
     $produtos = array_slice($all_ids, $offset, $batch_size);
 
-    $apenas_novos = !empty($_POST['apenas_novos']);
-    if ($apenas_novos) {
-        $produtos = array_filter($produtos, function($produto_id) use ($destino) {
-            return !produto_ja_enviado($produto_id, $destino['url']);
-        });
-    }
+    // Sempre pule produtos já enviados no lote
+    $produtos = array_filter($produtos, function($produto_id) use ($destino) {
+        return !produto_ja_enviado($produto_id, $destino['url']);
+    });
 
     $enviados = 0;
     $erros = [];

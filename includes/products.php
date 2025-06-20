@@ -223,6 +223,7 @@ function montar_atributos_produto($produto) {
 }
 
 function importar_variacoes_para_destino($produto, $destino, $id_destino) {
+    deletar_variacoes_no_destino($destino, $id_destino);
     $product_attributes = get_post_meta($produto->ID, '_product_attributes', true);
     $args_var = [
         'post_type' => 'product_variation',
@@ -270,5 +271,31 @@ function importar_variacoes_para_destino($produto, $destino, $id_destino) {
             'body' => json_encode($var_data),
             'timeout' => 30,
         ]);
+    }
+}
+
+function deletar_variacoes_no_destino($destino, $id_destino_produto) {
+    // Busca todas as variações do produto no destino
+    $url = trailingslashit($destino['url']) . 'wp-json/wc/v3/products/' . $id_destino_produto . '/variations?per_page=100';
+    $response = wp_remote_get($url, [
+        'headers' => importar_woo_get_auth_headers($destino['ck'], $destino['cs']),
+        'timeout' => 30,
+    ]);
+    if (is_wp_error($response) || wp_remote_retrieve_response_code($response) >= 300) {
+        return;
+    }
+    $variacoes = json_decode(wp_remote_retrieve_body($response), true);
+    if (!is_array($variacoes)) return;
+    foreach ($variacoes as $variacao) {
+        if (isset($variacao['id'])) {
+            wp_remote_request(
+                trailingslashit($destino['url']) . 'wp-json/wc/v3/products/' . $id_destino_produto . '/variations/' . $variacao['id'] . '?force=true',
+                [
+                    'method' => 'DELETE',
+                    'headers' => importar_woo_get_auth_headers($destino['ck'], $destino['cs']),
+                    'timeout' => 30,
+                ]
+            );
+        }
     }
 }

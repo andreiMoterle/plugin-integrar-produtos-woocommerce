@@ -15,7 +15,11 @@ if (isset($_POST['destino_idx'])) {
 }
 ?>
 <div class="wrap">
-
+    <div id="importador-loader" class="importador-loader">
+        <div class="importador-loader-center">
+            <div class="loader"></div>
+        </div>
+    </div>
     <h1>Enviar Produtos para Franqueado</h1>
     <?php if (empty($destinos)): ?>
         <?php importar_woo_mensagem('Cadastre pelo menos um destino nas configurações.', 'error'); ?>

@@ -189,3 +189,23 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Mostra o loader ao clicar nos botões de importação
+    ['importar-todos', 'importar-novos'].forEach(function(id) {
+        var btn = document.getElementById(id);
+        if (btn) {
+            btn.addEventListener('click', function() {
+                var loader = document.getElementById('importador-loader');
+                if (loader) loader.style.display = 'block';
+            });
+        }
+    });
+    // Mostra o loader ao importar produto único
+    document.querySelectorAll('button[name="importar_produto_unico"]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var loader = document.getElementById('importador-loader');
+            if (loader) loader.style.display = 'block';
+        });
+    });
+});

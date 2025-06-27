@@ -21,9 +21,20 @@ if (isset($_POST['remover_destino'])) {
     check_admin_referer('remover_destino_action', 'remover_destino_nonce');
     $idx = intval($_POST['remover_destino']);
     if (isset($destinos[$idx])) {
+        $url_removida = $destinos[$idx]['url'] ?? '';
         unset($destinos[$idx]);
         $destinos = array_values($destinos);
         update_option('importador_woo_destinos', $destinos);
+
+        // Limpa histórico do destino removido
+        if ($url_removida) {
+            $historico = get_option('importador_woo_historico_envios', []);
+            if (isset($historico[$url_removida])) {
+                unset($historico[$url_removida]);
+                update_option('importador_woo_historico_envios', $historico);
+            }
+        }
+
         importar_woo_mensagem('Destino removido!', 'success');
     }
 }
